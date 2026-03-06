@@ -101,14 +101,22 @@ static int parse_t_tag(char* val, struct list_head* head) {
     return 0;
 }
 
+static DEFINE_PER_CPU(u32, awg_state) = 1;
+
 static u32 awg_fast_rand(void) {
-    static DEFINE_PER_CPU(u32, awg_state) = 1;
-    u32 x = get_cpu_var(awg_state);
-    if (!x) x = get_random_u32() | 1;
+    u32 *ptr = get_cpu_ptr(&awg_state);
+    u32 x = *ptr;
+
+    if (!x)
+        x = get_random_u32() | 1;
+
     x ^= x << 13;
     x ^= x >> 17;
     x ^= x << 5;
-    put_cpu_var(awg_state) = x;
+
+    *ptr = x;
+    put_cpu_ptr(&awg_state);
+
     return x;
 }
 

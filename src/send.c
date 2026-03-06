@@ -48,7 +48,7 @@ static void wg_packet_send_handshake_initiation(struct wg_peer *peer)
 		spec = &wg->ispecs[i];
 		if (spec->pkt_size > 0) {
 			mutex_lock(&spec->lock);
-			jp_spec_applymods(spec, peer);
+			jp_spec_applymods(spec, spec->pkt, peer);
 			wg_socket_send_buffer_to_peer(peer, spec->pkt, spec->pkt_size, 0, 0);
 			atomic_inc(&peer->jp_packet_counter);
 			mutex_unlock(&spec->lock);
