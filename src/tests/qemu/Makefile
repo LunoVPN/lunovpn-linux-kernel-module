@@ -68,7 +68,14 @@ $(eval $(call tar_download,IPROUTE2,iproute2,5.6.0,.tar.xz,https://www.kernel.or
 $(eval $(call tar_download,IPTABLES,iptables,1.8.4,.tar.bz2,https://www.netfilter.org/projects/iptables/files/))
 $(eval $(call tar_download,NMAP,nmap,7.80,.tar.bz2,https://nmap.org/dist/))
 $(eval $(call tar_download,IPUTILS,iputils,s20161105,.tar.gz,https://github.com/iputils/iputils/archive/s20161105.tar.gz/#))
-$(eval $(call tar_download,WIREGUARD_TOOLS,wireguard-tools,1.0.20191226,.tar.xz,https://git.zx2c4.com/wireguard-tools/snapshot/))
+# LunoVPN tools fork: builds the `wg` artifact that installs as `lwg`.
+WIREGUARD_TOOLS_VERSION := main
+WIREGUARD_TOOLS_NAME := lunowg-tools-$(WIREGUARD_TOOLS_VERSION)
+WIREGUARD_TOOLS_TAR := $(DISTFILES_PATH)/$(WIREGUARD_TOOLS_NAME).tar.gz
+WIREGUARD_TOOLS_PATH := $(BUILD_PATH)/$(WIREGUARD_TOOLS_NAME)
+$(WIREGUARD_TOOLS_TAR):
+	mkdir -p $(DISTFILES_PATH)
+	flock -x $@.lock -c '[ -f $@ ] && exit 0; wget -O $@ https://github.com/LunoVPN/lunowg-tools/archive/refs/heads/main.tar.gz || rm -f $@'
 
 export CFLAGS ?= -O3 -pipe
 export LDFLAGS ?=
@@ -261,7 +268,7 @@ $(BUILD_PATH)/init-cpio-spec.txt:
 	echo "nod /dev/console 644 0 0 c 5 1" >> $@
 	echo "dir /bin 755 0 0" >> $@
 	echo "file /bin/iperf3 $(IPERF_PATH)/src/iperf3 755 0 0" >> $@
-	echo "file /bin/wg $(WIREGUARD_TOOLS_PATH)/src/wg 755 0 0" >> $@
+	echo "file /bin/lwg $(WIREGUARD_TOOLS_PATH)/src/wg 755 0 0" >> $@
 	echo "file /bin/bash $(BASH_PATH)/bash 755 0 0" >> $@
 	echo "file /bin/ip $(IPROUTE2_PATH)/ip/ip 755 0 0" >> $@
 	echo "file /bin/ss $(IPROUTE2_PATH)/misc/ss 755 0 0" >> $@
@@ -285,7 +292,7 @@ $(KERNEL_PATH)/.installed: $(KERNEL_TAR)
 	sed -i 's/^Elf_Addr per_cpu_load_addr;$$/static \0/' $(KERNEL_PATH)/arch/x86/tools/relocs.c || true
 	if grep -sqr UTS_UBUNTU_RELEASE_ABI $(KERNEL_PATH)/debian/rules.d; then echo 'KBUILD_CFLAGS += -DUTS_UBUNTU_RELEASE_ABI=0' >> $(KERNEL_PATH)/Makefile; fi
 	sed -i "/^if INET\$$/a source \"net/wireguard/Kconfig\"" $(KERNEL_PATH)/net/Kconfig
-	sed -i "/^obj-\$$(CONFIG_NETFILTER).*+=/a obj-\$$(CONFIG_WIREGUARD) += wireguard/" $(KERNEL_PATH)/net/Makefile
+	sed -i "/^obj-\$$(CONFIG_NETFILTER).*+=/a obj-\$$(CONFIG_LUNOVPN) += wireguard/" $(KERNEL_PATH)/net/Makefile
 	ln -sfT $(shell readlink -f ../..) $(KERNEL_PATH)/net/wireguard
 	touch $@
 else
