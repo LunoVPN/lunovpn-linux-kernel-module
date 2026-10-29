@@ -271,8 +271,14 @@ void jp_tag_free(struct jp_tag* tag) {
 }
 
 void jp_spec_free(struct jp_spec *spec) {
+    kfree(spec->desc);
+    spec->desc = NULL;
     kfree(spec->pkt);
+    spec->pkt = NULL;
     kfree(spec->mods);
+    spec->mods = NULL;
+    spec->pkt_size = 0;
+    spec->mods_size = 0;
 }
 
 int jp_spec_setup(struct jp_spec *spec) {
@@ -289,6 +295,13 @@ int jp_spec_setup(struct jp_spec *spec) {
         return 0;
 
     mutex_lock(&spec->lock);
+
+    kfree(spec->pkt);
+    spec->pkt = NULL;
+    kfree(spec->mods);
+    spec->mods = NULL;
+    spec->pkt_size = 0;
+    spec->mods_size = 0;
 
     buf = kstrdup(spec->desc, GFP_KERNEL);
     if (!buf) {
@@ -322,7 +335,6 @@ int jp_spec_setup(struct jp_spec *spec) {
         goto error;
     }
 
-    spec->pkt_size = 0;
     list_for_each_entry_reverse(tag, &head, head) {
         if (tag->pkt) {
             memcpy(spec->pkt + spec->pkt_size, tag->pkt, tag->pkt_size);
